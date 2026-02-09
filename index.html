@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Soul Commander - Pixel Command RPG</title>
+    <meta name="description" content="Text-based RPG dengan pixel art. Kendalikan pahlawan dengan perintah teks!">
+    <meta name="theme-color" content="#6C5CE7">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- PWA Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('✅ Service Worker registered'))
+                    .catch(err => console.log('❌ Service Worker failed:', err));
+            });
+        }
+    </script>
+    
+    <!-- Mobile Web App Capable -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <div class="pixel-logo">⚔️</div>
+                <h1>SOUL COMMANDER</h1>
+                <div class="loading-subtitle">Pixel Command RPG</div>
+            </div>
+            <div class="loading-bar-container">
+                <div class="loading-bar" id="loadingBar"></div>
+            </div>
+            <div class="loading-tip" id="loadingTip">Initializing soul engine...</div>
+        </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div class="game-container" id="gameContainer" style="display: none;">
+        <!-- Game Header -->
+        <header class="game-header">
+            <div class="header-left">
+                <div class="game-title">
+                    <span class="title-icon">⚔️</span>
+                    <h1>SOUL COMMANDER</h1>
+                </div>
+                <div class="game-version">v2.1</div>
+            </div>
+            
+            <div class="header-right">
+                <div class="online-status">
+                    <span class="status-dot" id="statusDot">●</span>
+                    <span id="playerCount">1</span> online
+                </div>
+                <button class="menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Menu">
+                    <span class="menu-icon">☰</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dropdown Menu -->
+        <div class="dropdown-menu" id="dropdownMenu">
+            <button class="menu-item" onclick="saveGame()">
+                <span class="menu-icon">💾</span> Save Game
+            </button>
+            <button class="menu-item" onclick="loadGame()">
+                <span class="menu-icon">📂</span> Load Game
+            </button>
+            <button class="menu-item" onclick="toggleSound()" id="soundBtn">
+                <span class="menu-icon">🔊</span> Sound: ON
+            </button>
+            <button class="menu-item" onclick="exportData()">
+                <span class="menu-icon">📤</span> Export Data
+            </button>
+            <button class="menu-item" onclick="showHelp()">
+                <span class="menu-icon">❓</span> Help
+            </button>
+            <button class="menu-item" onclick="toggleFullscreen()">
+                <span class="menu-icon">⛶</span> Fullscreen
+            </button>
+            <button class="menu-item reset-btn" onclick="resetGame()">
+                <span class="menu-icon">🔄</span> Reset Game
+            </button>
+        </div>
+
+        <!-- Main Game Area -->
+        <main class="game-area">
+            <!-- Left Column: Character & Stats -->
+            <div class="left-column">
+                <!-- Character Display -->
+                <section class="character-section">
+                    <div class="character-title">
+                        <span class="section-icon">👤</span>
+                        SOUL COMMANDER
+                    </div>
+                    
+                    <div class="character-display">
+                        <canvas id="characterCanvas" width="128" height="128"></canvas>
+                        <div class="character-info">
+                            <div class="char-name" id="charName">Knight</div>
+                            <div class="char-class" id="charClass">⚔️ Warrior</div>
+                            <div class="char-level">Level <span id="charLevel">1</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Bars -->
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <div class="stat-header">
+                                <span class="stat-icon">❤️</span>
+                                <span class="stat-label">HEALTH</span>
+                                <span class="stat-value" id="healthValue">100/100</span>
+                            </div>
+                            <div class="stat-bar">
+                                <div class="bar-fill health-fill" id="healthBar"></div>
+                            </div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-header">
+                                <span class="stat-icon">🔮</span>
+                                <span class="stat-label">MANA</span>
+                                <span class="stat-value" id="manaValue">50/50</span>
+                            </div>
+                            <div class="stat-bar">
+                                <div class="bar-fill mana-fill" id="manaBar"></div>
+                            </div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-header">
+                                <span class="stat-icon">⭐</span>
+                                <span class="stat-label">EXPERIENCE</span>
+                                <span class="stat-value" id="xpValue">0/100</span>
+                            </div>
+                            <div class="stat-bar">
+                                <div class="bar-fill xp-fill" id="xpBar"></div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="quick-stats">
+                            <div class="quick-stat">
+                                <span class="quick-icon">💰</span>
+                                <span class="quick-label">Gold:</span>
+                                <span class="quick-value" id="goldValue">1,250</span>
+                            </div>
+                            <div class="quick-stat">
+                                <span class="quick-icon">🎯</span>
+                                <span class="quick-label">Kills:</span>
+                                <span class="quick-value" id="killsValue">0</span>
+                            </div>
+                            <div class="quick-stat">
+                                <span class="quick-icon">📍</span>
+                                <span class="quick-label">Area:</span>
+                                <span class="quick-value" id="locationValue">Sanctuary</span>
+                            </div>
+                            <div class="quick-stat">
+                                <span class="quick-icon">📅</span>
+                                <span class="quick-label">Day:</span>
+                                <span class="quick-value" id="gameDayValue">1</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Equipment Section -->
+                <section class="equipment-section">
+                    <div class="section-title">
+                        <span class="section-icon">🎒</span>
+                        EQUIPMENT
+                    </div>
+                    
+                    <div class="equipment-grid">
+                        <div class="equip-slot primary" onclick="useEquipment('weapon')">
+                            <div class="slot-icon" id="weaponIcon">⚔️</div>
+                            <div class="slot-label">Weapon</div>
+                            <div class="slot-name" id="weaponName">Iron Sword</div>
+                        </div>
+                        
+                        <div class="equip-slot secondary" onclick="useEquipment('skill')">
+                            <div class="slot-icon" id="skillIcon">💥</div>
+                            <div class="slot-label">Skill</div>
+                            <div class="slot-name" id="skillName">Slam</div>
+                        </div>
+                        
+                        <div class="equip-slot armor" onclick="useEquipment('armor')">
+                            <div class="slot-icon" id="armorIcon">🛡️</div>
+                            <div class="slot-label">Armor</div>
+                            <div class="slot-name" id="armorName">Leather</div>
+                        </div>
+                        
+                        <div class="equip-slot accessory" onclick="useEquipment('accessory')">
+                            <div class="slot-icon" id="accessoryIcon">💎</div>
+                            <div class="slot-label">Artifact</div>
+                            <div class="slot-name" id="accessoryName">Crystal</div>
+                        </div>
+                        
+                        <div class="equip-slot consumable" onclick="useEquipment('potion')">
+                            <div class="slot-icon" id="potionIcon">🧪</div>
+                            <div class="slot-label">Potions</div>
+                            <div class="slot-name" id="potionName">3x</div>
+                        </div>
+                        
+                        <div class="equip-slot special" onclick="useEquipment('special')">
+                            <div class="slot-icon" id="specialIcon">🐉</div>
+                            <div class="slot-label">Companion</div>
+                            <div class="slot-name" id="specialName">Dragon</div>
+                        </div>
+                    </div>
+                    
+                    <div class="equipment-hint">
+                        <span class="hint-icon">💡</span>
+                        Tap equipment to use
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Game Log & Commands -->
+            <div class="right-column">
+                <!-- Game Log -->
+                <section class="game-log-section">
+                    <div class="log-header">
+                        <div class="log-title">
+                            <span class="section-icon">📜</span>
+                            GAME LOG
+                        </div>
+                        <div class="log-controls">
+                            <button class="log-btn" onclick="scrollLogToTop()" title="Scroll to top">
+                                ⬆️
+                            </button>
+                            <button class="log-btn" onclick="toggleAutoScroll()" id="autoScrollBtn" title="Auto-scroll">
+                                🔽
+                            </button>
+                            <button class="log-btn clear-btn" onclick="clearGameLog()" title="Clear log">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="log-container" id="gameLog">
+                        <div class="log-entry welcome">
+                            <span class="log-time">[00:00]</span>
+                            <span class="log-content">🌟 WELCOME TO SOUL COMMANDER v2.1! 🌟</span>
+                        </div>
+                        <div class="log-entry system">
+                            <span class="log-time">[00:00]</span>
+                            <span class="log-content">⚔️ Your journey begins in the Sanctuary...</span>
+                        </div>
+                        <div class="log-entry system">
+                            <span class="log-time">[00:00]</span>
+                            <span class="log-content">📱 Mobile optimized • PWA ready • Offline play</span>
+                        </div>
+                        <div class="log-entry system">
+                            <span class="log-time">[00:00]</span>
+                            <span class="log-content">💡 Type commands or use quick actions below</span>
+                        </div>
+                    </div>
+                    
+                    <div class="log-footer">
+                        <span class="log-counter" id="logCounter">4/100 messages</span>
+                        <span class="log-hint" id="logHint">↓ Auto-scroll ON • Tap log to focus</span>
+                    </div>
+                </section>
+
+                <!-- Command Input -->
+                <section class="command-section">
+                    <div class="command-header">
+                        <div class="command-title">
+                            <span class="section-icon">⌨️</span>
+                            COMMAND TERMINAL
+                        </div>
+                        <button class="mobile-help-btn" onclick="showMobileTips()" title="Mobile tips">
+                            📱
+                        </button>
+                    </div>
+                    
+                    <div class="command-input-group">
+                        <div class="input-wrapper">
+                            <div class="command-prefix">&gt;</div>
+                            <input type="text" 
+                                   id="commandInput" 
+                                   class="command-input" 
+                                   placeholder="Type command here..."
+                                   enterkeyhint="send"
+                                   inputmode="text"
+                                   autocapitalize="none"
+                                   autocomplete="off"
+                                   spellcheck="false"
+                                   aria-label="Command input">
+                            <button class="send-btn" onclick="executeCommand()" id="sendBtn" aria-label="Send command">
+                                <span class="send-text">SEND</span>
+                                <span class="send-icon">⚡</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Command Chips -->
+                    <div class="quick-chips" id="quickChips">
+                        <button class="command-chip" onclick="quickCommand('fight goblin')">
+                            ⚔️ Fight
+                        </button>
+                        <button class="command-chip" onclick="quickCommand('explore forest')">
+                            🌲 Explore
+                        </button>
+                        <button class="command-chip" onclick="quickCommand('heal')">
+                            🧪 Heal
+                        </button>
+                        <button class="command-chip" onclick="quickCommand('inventory')">
+                            🎒 Inventory
+                        </button>
+                        <button class="command-chip" onclick="quickCommand('stats')">
+                            📊 Stats
+                        </button>
+                        <button class="command-chip" onclick="quickCommand('rest')">
+                            🛌 Rest
+                        </button>
+                    </div>
+                    
+                    <!-- Command History -->
+                    <div class="history-section">
+                        <div class="history-title">
+                            <span class="history-icon">📋</span>
+                            Recent Commands
+                        </div>
+                        <div class="history-list" id="historyList">
+                            <!-- History akan diisi JavaScript -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quest Section -->
+                <section class="quest-section">
+                    <div class="section-title">
+                        <span class="section-icon">🎯</span>
+                        ACTIVE QUEST
+                    </div>
+                    <div class="quest-content">
+                        <div class="quest-title" id="questTitle">Initiate's Trial</div>
+                        <div class="quest-desc" id="questDesc">Defeat 3 enemies to prove your worth</div>
+                        <div class="quest-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="questProgress" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-text" id="questProgressText">0/3</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Game Footer -->
+        <footer class="game-footer">
+            <div class="footer-left">
+                <span class="footer-text" id="connectionStatus">🟢 Online • PWA Ready</span>
+            </div>
+            <div class="footer-center">
+                <span class="footer-text">🎮 Soul Commander © 2024</span>
+            </div>
+            <div class="footer-right">
+                <button class="footer-btn" onclick="showKeyboardHelp()" title="Keyboard help">
+                    ⌨️
+                </button>
+                <button class="footer-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">
+                    🌙
+                </button>
+                <button class="footer-btn" onclick="shareGame()" title="Share game">
+                    📤
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Floating Action Button for Mobile -->
+    <button class="mobile-fab" id="mobileFab" onclick="scrollToCommand()" aria-label="Go to command input">
+        ⌨️
+    </button>
+
+    <!-- Mobile Tips Modal -->
+    <div class="modal" id="mobileTipsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📱 Mobile Tips</h2>
+                <button class="modal-close" onclick="closeModal('mobileTipsModal')" aria-label="Close">
+                    ×
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="tip-item">
+                    <span class="tip-icon">👆</span>
+                    <div class="tip-content">
+                        <h3>Tap Equipment</h3>
+                        <p>Tap equipment slots to use items quickly</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">⬆️⬇️</span>
+                    <div class="tip-content">
+                        <h3>Scroll Game</h3>
+                        <p>Swipe up/down to scroll the entire game</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">⌨️</span>
+                    <div class="tip-content">
+                        <h3>Quick Commands</h3>
+                        <p>Use command chips for frequent actions</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">💾</span>
+                    <div class="tip-content">
+                        <h3>Auto-save</h3>
+                        <p>Game saves automatically every 2 minutes</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">📱</span>
+                    <div class="tip-content">
+                        <h3>Install as App</h3>
+                        <p>Add to home screen for app-like experience</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Elements (Placeholder) -->
+    <audio id="bgMusic" loop preload="metadata" style="display: none;"></audio>
+    <audio id="sfxClick" preload="auto" style="display: none;"></audio>
+    <audio id="sfxCombat" preload="auto" style="display: none;"></audio>
+
+    <!-- Game Scripts -->
+    <script src="game.js"></script>
+    
+    <!-- Initialize Game -->
+    <script>
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initSoulCommander, 500);
+        });
+        
+        // Mobile FAB functionality
+        let lastScrollTop = 0;
+        const fab = document.getElementById('mobileFab');
+        
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > 100 && scrollTop > lastScrollTop) {
+                fab.style.display = 'flex';
+            } else if (scrollTop < 50) {
+                fab.style.display = 'none';
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+        
+        function scrollToCommand() {
+            const commandInput = document.getElementById('commandInput');
+            if (commandInput) {
+                commandInput.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+                setTimeout(() => {
+                    commandInput.focus();
+                }, 300);
+            }
+        }
+        
+        // Auto-focus command input on tap
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('log-entry') || 
+                e.target.classList.contains('log-container')) {
+                const input = document.getElementById('commandInput');
+                if (input) {
+                    input.focus();
+                }
+            }
+        });
+        
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+        
+        // Handle keyboard visibility
+        const commandInput = document.getElementById('commandInput');
+        if (commandInput) {
+            commandInput.addEventListener('focus', function() {
+                if ('ontouchstart' in window) {
+                    setTimeout(() => {
+                        this.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                    }, 300);
+                }
+            });
+        }
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('dropdownMenu');
+            const menuBtn = document.getElementById('menuBtn');
+            
+            if (menu && menu.classList.contains('show') && 
+                !menu.contains(e.target) && 
+                !menuBtn.contains(e.target)) {
+                menu.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
