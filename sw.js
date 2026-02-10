@@ -1,5 +1,5 @@
 // Service Worker for Soul Commander PWA
-const CACHE_NAME = 'soul-commander-v2.1';
+const CACHE_NAME = 'soul-commander-v2.2';
 const urlsToCache = [
     './',
     './index.html',
